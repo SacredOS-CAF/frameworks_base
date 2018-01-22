@@ -5142,6 +5142,9 @@ public class StatusBar extends SystemUI implements DemoMode,
                     Settings.System.HEADS_UP_STOPLIST_VALUES), false, this);
             resolver.registerContentObserver(Settings.System.getUriFor(
                     Settings.System.HEADS_UP_BLACKLIST_VALUES), false, this);
+            resolver.registerContentObserver(Settings.System.getUriFor(
+                    Settings.System.LOCK_CLOCK_FONT),
+                    false, this, UserHandle.USER_ALL);
         }
 
         @Override
@@ -5158,6 +5161,9 @@ public class StatusBar extends SystemUI implements DemoMode,
             } else if (uri.equals(Settings.System.getUriFor(
                     Settings.System.HEADS_UP_BLACKLIST_VALUES))) {
                 setHeadsUpBlacklist();
+            } else if (uri.equals(Settings.System.getUriFor(
+                    Settings.System.LOCK_CLOCK_FONT))) {
+                updateKeyguardStatusSettings();
             }
         }
 
@@ -5165,6 +5171,7 @@ public class StatusBar extends SystemUI implements DemoMode,
             setQsRowsColumns();
             setHeadsUpStoplist();
             setHeadsUpBlacklist();
+            updateKeyguardStatusSettings();
         }
     }
 
@@ -5184,6 +5191,10 @@ public class StatusBar extends SystemUI implements DemoMode,
         final String blackString = Settings.System.getString(mContext.getContentResolver(),
                     Settings.System.HEADS_UP_BLACKLIST_VALUES);
         splitAndAddToArrayList(mBlacklist, blackString, "\\|");
+    }
+
+    private void updateKeyguardStatusSettings() {
+        mNotificationPanel.updateKeyguardStatusSettings();
     }
 
     private final BroadcastReceiver mBannerActionBroadcastReceiver = new BroadcastReceiver() {

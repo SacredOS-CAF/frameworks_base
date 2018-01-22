@@ -24,10 +24,12 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.RemoteException;
 import android.os.UserHandle;
+import android.provider.Settings;
 import android.support.v4.graphics.ColorUtils;
 import android.text.TextUtils;
 import android.text.format.DateFormat;
@@ -77,6 +79,8 @@ public class KeyguardStatusView extends GridLayout implements
     private int mTextColor;
     private float mWidgetPadding;
     private int mLastLayoutHeight;
+
+    private int mLockClockFont;
 
     private KeyguardUpdateMonitorCallback mInfoCallback = new KeyguardUpdateMonitorCallback() {
 
@@ -185,6 +189,8 @@ public class KeyguardStatusView extends GridLayout implements
         mClockSeparator.addOnLayoutChangeListener(this);
         mKeyguardSlice.setContentChangeListener(this::onSliceContentChanged);
         onSliceContentChanged();
+
+        updateSettings();
 
         boolean shouldMarquee = KeyguardUpdateMonitor.getInstance(mContext).isDeviceInteractive();
         setEnableMarquee(shouldMarquee);
@@ -372,6 +378,25 @@ public class KeyguardStatusView extends GridLayout implements
     @Override
     public boolean hasOverlappingRendering() {
         return false;
+    }
+
+    private void updateSettings() {
+        mLockClockFont = Settings.System.getIntForUser(getContext().getContentResolver(),
+                Settings.System.LOCK_CLOCK_FONT, 1, UserHandle.USER_CURRENT);
+
+        switch (mLockClockFont) {
+            case 0:
+                mClockView.setTypeface(Typeface.create("sans-serif-light", Typeface.NORMAL));
+                break;
+            case 1:
+            default:
+                mClockView.setTypeface(Typeface.create("sacred", Typeface.NORMAL));
+                break;
+        }
+    }
+
+    public void updateAll() {
+        updateSettings();
     }
 
     // DateFormat.getBestDateTimePattern is extremely expensive, and refresh is called often.
