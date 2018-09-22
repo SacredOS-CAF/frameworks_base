@@ -970,15 +970,12 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
         }
 
         public View getView(int position, View convertView, ViewGroup parent) {
-            return getView(position, convertView, parent, false);
-        }
-
-        public View getView(int position, View convertView, ViewGroup parent, boolean noDivider) {
             Action action = getItem(position);
             View view = action.create(mContext, convertView, parent, LayoutInflater.from(mContext));
-            if (!noDivider && position == getCount() - 1) {
+            // Everything gets white background.
+            /*if (position == getCount() - 1) {
                 HardwareUiLayout.get(parent).setDivisionView(view);
-            }
+            }*/
             return view;
         }
     }
@@ -1608,10 +1605,10 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
             });
         }
 
-        private void updateList(boolean noDivider) {
+        private void updateList() {
             mListView.removeAllViews();
             for (int i = 0; i < mAdapter.getCount(); i++) {
-                View v = mAdapter.getView(i, null, mListView, noDivider);
+                View v = mAdapter.getView(i, null, mListView);
                 final int pos = i;
                 v.setOnClickListener(view -> mClickListener.onClick(this, pos));
                 v.setOnLongClickListener(view ->
@@ -1621,7 +1618,7 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
         }
 
         public void refreshList() {
-            updateList(true);
+            updateList();
             // we need to recreate the HardwareBgDrawable
             HardwareUiLayout.get(mListView).updateSettings();
         }
@@ -1630,7 +1627,7 @@ class GlobalActionsDialog implements DialogInterface.OnDismissListener,
         protected void onStart() {
             super.setCanceledOnTouchOutside(true);
             super.onStart();
-            updateList(false);
+            updateList();
 
             Point displaySize = new Point();
             mContext.getDisplay().getRealSize(displaySize);
