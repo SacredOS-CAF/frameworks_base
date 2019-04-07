@@ -64,7 +64,7 @@ import android.widget.TextView;
 
 import com.android.internal.logging.nano.MetricsProto.MetricsEvent;
 import com.android.internal.widget.LockPatternUtils;
-import com.android.keyguard.EmergencyButton;
+import com.android.keyguard.EmergencyCarrierArea;
 import com.android.keyguard.KeyguardUpdateMonitor;
 import com.android.keyguard.KeyguardUpdateMonitorCallback;
 import com.android.systemui.EventLogTags;
@@ -120,7 +120,7 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
     private static final int DOZE_ANIMATION_STAGGER_DELAY = 48;
     private static final int DOZE_ANIMATION_ELEMENT_DURATION = 250;
 
-    private EmergencyButton mEmergencyButton;
+    private EmergencyCarrierArea mEmergencyCarrierArea;
     private KeyguardAffordanceView mRightAffordanceView;
     private KeyguardAffordanceView mLeftAffordanceView;
     private LockIcon mLockIcon;
@@ -175,6 +175,7 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
     private int mIndicationBottomMarginAmbient;
     private float mDarkAmount;
     private int mBurnInXOffset;
+    private int mBurnInYOffset;
     private boolean mIsPowerCameraGesture;
     private String mPreviousSource;
 
@@ -238,7 +239,7 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
         super.onFinishInflate();
         mLockPatternUtils = new LockPatternUtils(mContext);
         mPreviewContainer = findViewById(R.id.preview_container);
-        mEmergencyButton = (EmergencyButton) findViewById(R.id.emergency_call_button);
+        mEmergencyCarrierArea = (EmergencyCarrierArea) findViewById(R.id.keyguard_selector_fade_container);
         mOverlayContainer = findViewById(R.id.overlay_container);
         mRightAffordanceView = findViewById(R.id.camera_button);
         mLeftAffordanceView = findViewById(R.id.left_button);
@@ -251,6 +252,8 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
                 R.dimen.keyguard_indication_margin_bottom);
         mIndicationBottomMarginAmbient = getResources().getDimensionPixelSize(
                 R.dimen.keyguard_indication_margin_bottom_ambient);
+        mBurnInYOffset = getResources().getDimensionPixelSize(
+                R.dimen.charging_indication_burn_in_prevention_offset_y);
         updateCameraVisibility();
         mUnlockMethodCache = UnlockMethodCache.getInstance(getContext());
         mUnlockMethodCache.addListener(this);
@@ -258,7 +261,6 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
         mLockIcon.setScreenOn(updateMonitor.isScreenOn());
         mLockIcon.setDeviceInteractive(updateMonitor.isDeviceInteractive());
         mLockIcon.update();
-        updateEmergencyButton();
         setClipChildren(false);
         setClipToPadding(false);
         mPreviewInflater = new PreviewInflater(mContext, new LockPatternUtils(mContext));
@@ -325,6 +327,8 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
                 R.dimen.keyguard_indication_margin_bottom);
         mIndicationBottomMarginAmbient = getResources().getDimensionPixelSize(
                 R.dimen.keyguard_indication_margin_bottom_ambient);
+        mBurnInYOffset = getResources().getDimensionPixelSize(
+                R.dimen.charging_indication_burn_in_prevention_offset_y);
         MarginLayoutParams mlp = (MarginLayoutParams) mIndicationArea.getLayoutParams();
         if (mlp.bottomMargin != mIndicationBottomMargin) {
             mlp.bottomMargin = mIndicationBottomMargin;
@@ -357,7 +361,6 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
         lp.height = getResources().getDimensionPixelSize(R.dimen.keyguard_affordance_height);
         mLeftAffordanceView.setLayoutParams(lp);
         updateLeftAffordanceIcon();
-        updateEmergencyButton();
     }
 
     private void updateRightAffordanceIcon() {
@@ -599,12 +602,6 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
             return;
         }
         mDarkAmount = darkAmount;
-        // Let's randomize the bottom margin every time we wake up to avoid burn-in.
-        if (darkAmount == 0) {
-            mIndicationBottomMarginAmbient = getResources().getDimensionPixelSize(
-                    R.dimen.keyguard_indication_margin_bottom_ambient)
-                    + (int) (Math.random() * mIndicationText.getTextSize());
-        }
         mIndicationArea.setAlpha(MathUtils.lerp(1f, 0.7f, darkAmount));
         mIndicationArea.setTranslationY(MathUtils.lerp(0,
                 mIndicationBottomMargin - mIndicationBottomMarginAmbient, darkAmount));
@@ -884,9 +881,11 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
         if (dozing) {
             mLockIcon.setVisibility(INVISIBLE);
             mOverlayContainer.setVisibility(INVISIBLE);
+            mEmergencyCarrierArea.setVisibility(INVISIBLE);
         } else {
             mLockIcon.setVisibility(VISIBLE);
             mOverlayContainer.setVisibility(VISIBLE);
+            mEmergencyCarrierArea.setVisibility(VISIBLE);
             if (animate) {
                 startFinishDozeAnimation();
             }
@@ -896,8 +895,9 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
     public void dozeTimeTick() {
         if (mDarkAmount == 1) {
             // Move indication every minute to avoid burn-in
-            final int dozeTranslation = mIndicationBottomMargin - mIndicationBottomMarginAmbient;
-            mIndicationArea.setTranslationY(dozeTranslation + (float) Math.random() * 5);
+            int dozeTranslation = mIndicationBottomMargin - mIndicationBottomMarginAmbient;
+            int burnInYOffset = (int) (-mBurnInYOffset + Math.random() * mBurnInYOffset * 2);
+            mIndicationArea.setTranslationY(dozeTranslation + burnInYOffset);
         }
     }
 
@@ -962,12 +962,6 @@ public class KeyguardBottomAreaView extends FrameLayout implements View.OnClickL
         @Override
         public Intent getIntent() {
             return getDefaultCameraIntent();
-        }
-    }
-
-    private void updateEmergencyButton() {
-        if (mEmergencyButton != null) {
-            mEmergencyButton.updateEmergencyCallButton();
         }
     }
 
